@@ -25,6 +25,19 @@ function ensureSource() {
   source.onerror = () => emit({ kind: 'conn', connected: false }); // the browser reconnects by itself
 }
 
+// Close the stream when the page is hidden for navigation, and reopen on return.
+// WHY: browsers keep pages in the back/forward cache with their connections open,
+// and allow only 6 connections per host. After 6 full page loads in one tab, the
+// next page would hang waiting for a free connection.
+if (typeof window !== 'undefined') {
+  window.addEventListener('pagehide', () => {
+    if (source) { source.close(); source = null; }
+  });
+  window.addEventListener('pageshow', (e) => {
+    if (e.persisted && listeners.size) ensureSource(); // back/forward: reconnect (server replays state in "hello")
+  });
+}
+
 export function subscribe(fn) {
   ensureSource();
   listeners.add(fn);
