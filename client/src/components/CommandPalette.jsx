@@ -1,14 +1,17 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Search, Play, Clapperboard, Power, RotateCcw, Sun, LayoutDashboard, Signature, FlaskConical, Store, BookLock, Home, Compass } from 'lucide-react';
+import { Search, Play, Clapperboard, Power, RotateCcw, Sun, LayoutDashboard, Signature, FlaskConical, Store, BookLock, Home, Compass, Film, Microscope, Settings } from 'lucide-react';
+import { useFeatures } from '../lib/features.js';
+import { startStory } from '../lib/story.js';
 import { navigate } from '../lib/router.jsx';
 import { post } from '../lib/api.js';
 import { useApp } from '../lib/store.jsx';
 import { spring } from '../lib/motion.js';
 
 /** Ctrl/Cmd+K: run agent, pause, reset, open pages, toggle theme. */
-export default function CommandPalette({ open, onClose, onToggleTheme, onStartTour }) {
+export default function CommandPalette({ open, onClose, onToggleTheme, onStartTour, onOpenSettings }) {
   const { status, toast } = useApp();
+  const flags = useFeatures();
   const [q, setQ] = useState('');
   const [i, setI] = useState(0);
   const inputRef = useRef(null);
@@ -23,6 +26,7 @@ export default function CommandPalette({ open, onClose, onToggleTheme, onStartTo
   };
 
   const commands = useMemo(() => [
+    ...(flags.storyMode ? [{ label: 'Play Story Mode (1 min)', Icon: Film, action: startStory, hint: 'Demo' }] : []),
     { label: 'Run agent', Icon: Play, action: run(() => post('/api/agent/run')), hint: 'Agent' },
     { label: 'Run Demo mode (reset + scripted story)', Icon: Clapperboard, action: run(async () => { navigate('/app'); await post('/api/demo/run'); }), hint: 'Agent' },
     { label: status?.paused ? 'Resume agent' : 'Pause agent (kill switch)', Icon: Power, action: run(() => post(status?.paused ? '/api/agent/resume' : '/api/agent/pause')), hint: 'Safety' },
@@ -35,7 +39,9 @@ export default function CommandPalette({ open, onClose, onToggleTheme, onStartTo
     { label: 'Go to 30-day simulation', Icon: FlaskConical, action: () => navigate('/simulate'), hint: 'Page' },
     { label: 'Go to Suppliers', Icon: Store, action: () => navigate('/suppliers'), hint: 'Page' },
     { label: 'Go to Ledger', Icon: BookLock, action: () => navigate('/ledger'), hint: 'Page' },
-  ], [status?.paused, onToggleTheme, onStartTour]); // `run`/`toast` are stable enough for a palette
+    ...(flags.scenarioLab ? [{ label: 'Go to Scenario Lab', Icon: Microscope, action: () => navigate('/lab'), hint: 'Page' }] : []),
+    { label: 'Open settings (feature switches)', Icon: Settings, action: onOpenSettings, hint: 'View' },
+  ], [status?.paused, onToggleTheme, onStartTour, onOpenSettings, flags.storyMode, flags.scenarioLab]); // `run`/`toast` are stable enough for a palette
 
   const filtered = commands.filter((c) => c.label.toLowerCase().includes(q.toLowerCase()));
 

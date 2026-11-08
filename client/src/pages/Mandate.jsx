@@ -7,6 +7,9 @@ import { dateTime, shortHash } from '../lib/format.js';
 import { spring, fadeUp, stagger } from '../lib/motion.js';
 import MandateCard from '../components/MandateCard.jsx';
 import { SkeletonCard } from '../components/Skeleton.jsx';
+import MandateDiff from '../components/MandateDiff.jsx';
+import SignRibbon from '../components/SignRibbon.jsx';
+import { useFeature } from '../lib/features.js';
 
 const CATEGORIES = ['packaging', 'beverage-supplies', 'food-supplies', 'cleaning-supplies'];
 const FIELDS = [
@@ -36,6 +39,10 @@ export default function Mandate() {
   const [parsing, setParsing] = useState(false);
   const [signing, setSigning] = useState(false);
   const [history, setHistory] = useState(null);
+  const upgrades = useFeature('mandateUpgrades');
+  const [view, setView] = useState('card'); // card | english | json
+  const [ribbon, setRibbon] = useState(null);
+  const [openDiff, setOpenDiff] = useState(null);
 
   const loadHistory = () => api('/api/mandate/history').then(setHistory).catch(() => setHistory([]));
   useEffect(() => { loadHistory(); }, [mandate?.version, mandate?.status]);
@@ -70,7 +77,8 @@ export default function Mandate() {
     for (const [k] of FIELDS) rules[k] = Number(rules[k]);
     await new Promise((r) => setTimeout(r, 1500)); // let the signature stroke finish
     try {
-      await post('/api/mandate/sign', { sourceText: text, rules });
+      const signed = await post('/api/mandate/sign', { sourceText: text, rules });
+      if (upgrades) { setRibbon(signed.version); setTimeout(() => setRibbon(null), 2600); }
       celebrate('small');
       toast('Mandate signed. Guardian now enforces the new rules.', 'success');
       setDraft(null);
@@ -167,6 +175,11 @@ export default function Mandate() {
           {draft ? (
             <>
               <MandateCard rules={{ ...draft.rules, ...Object.fromEntries(FIELDS.map(([k]) => [k, Number(draft.rules[k])])) }} preview signing={signing} />
+              {upgrades && mandate && (
+                <div className="card">
+                  <MandateDiff title={`What changes vs v${mandate.version}`} before={mandate.rules} after={{ ...draft.rules, ...Object.fromEntries(FIELDS.map(([k]) => [k, Number(draft.rules[k])])) }} />
+                </div>
+              )}
               <div className="flex flex-wrap gap-2">
                 <button className="btn btn-primary btn-lg" onClick={sign} disabled={!valid || signing}>
                   <Signature size={18} aria-hidden="true" /> {signing ? 'Signing…' : 'Sign as Pranay'}
@@ -176,7 +189,34 @@ export default function Mandate() {
             </>
           ) : mandate ? (
             <>
-              <MandateCard mandate={mandate} />
+              {upgrades && (
+                <div className="flex gap-1 rounded-xl bg-surface-2 p-1 text-xs font-semibold" role="tablist" aria-label="Mandate view">
+                  {[['card', 'Card'], ['english', 'Plain English'], ['json', 'Rules JSON']].map(([k, label]) => (
+                    <button key={k} role="tab" aria-selected={view === k} onClick={() => setView(k)}
+                      className={`relative flex-1 rounded-lg px-3 py-1.5 ${view === k ? 'text-ink' : 'text-ink-3'}`}>
+                      {view === k && <motion.span layoutId="mandate-view" className="absolute inset-0 rounded-lg bg-surface" style={{ boxShadow: 'var(--shadow-sm)' }} transition={spring} />}
+                      <span className="relative">{label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div className="relative overflow-hidden rounded-2xl">
+                <AnimatePresence mode="wait" initial={false}>
+                  {(!upgrades || view === 'card') && <motion.div key="card" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}><MandateCard mandate={mandate} /></motion.div>}
+                  {upgrades && view === 'english' && (
+                    <motion.blockquote key="en" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="card text-[15px] leading-relaxed">
+                      “{mandate.sourceText}”
+                      <footer className="mt-3 text-xs text-ink-3">Pranay, signed v{mandate.version} · {dateTime(mandate.signedAt)}</footer>
+                    </motion.blockquote>
+                  )}
+                  {upgrades && view === 'json' && (
+                    <motion.pre key="json" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="card max-h-96 overflow-auto font-mono text-[12px] leading-relaxed">
+                      {JSON.stringify({ version: mandate.version, status: mandate.status, hash: mandate.hash, rules: mandate.rules }, null, 2)}
+                    </motion.pre>
+                  )}
+                </AnimatePresence>
+                <SignRibbon show={!!ribbon} version={ribbon} />
+              </div>
               {mandate.status === 'active' && (
                 <button className="btn btn-danger" onClick={revoke}><Ban size={15} aria-hidden="true" /> Revoke mandate</button>
               )}
@@ -190,12 +230,23 @@ export default function Mandate() {
             {!history ? <SkeletonCard lines={2} className="mt-3 border-0 p-0 shadow-none" /> : (
               <ol className="mt-3 space-y-2">
                 {history.map((m) => (
-                  <li key={m.version} className="flex items-center justify-between gap-3 rounded-xl bg-surface-2 px-3 py-2 text-xs">
-                    <span><b>v{m.version}</b> · {dateTime(m.signedAt)} · {m.signedBy}</span>
+                  <li key={m.version} className="rounded-xl bg-surface-2 px-3 py-2 text-xs">
+                    <div className="flex items-center justify-between gap-3">
+                    <span><b>v{m.version}</b> · {dateTime(m.signedAt)} · {m.signedBy}
+                      {upgrades && history.some((h) => h.version === m.version - 1) && (
+                        <button className="link ml-2" onClick={() => setOpenDiff(openDiff === m.version ? null : m.version)} aria-expanded={openDiff === m.version}>
+                          {openDiff === m.version ? 'Hide changes' : 'What changed'}
+                        </button>
+                      )}
+                    </span>
                     <span className="flex items-center gap-2">
                       <span className="font-mono text-ink-3" title={m.hash}>{shortHash(m.hash)}</span>
                       <span className={`badge ${m.status === 'active' ? 'bg-ok-soft text-ok' : m.status === 'revoked' ? 'bg-bad-soft text-bad' : 'bg-surface text-ink-2'}`}>{m.status}</span>
                     </span>
+                    </div>
+                    {upgrades && openDiff === m.version && (
+                      <MandateDiff before={history.find((h) => h.version === m.version - 1)?.rules} after={m.rules} />
+                    )}
                   </li>
                 ))}
               </ol>

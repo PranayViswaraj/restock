@@ -31,14 +31,14 @@ export function isRunning() {
  * Start a run in the background. Returns { runId } immediately.
  * scripted=true -> Demo mode: rule-based Scout with pauses between steps (works with no keys).
  */
-export function startAgentRun({ trigger = 'dashboard', scripted = false } = {}) {
+export function startAgentRun({ trigger = 'dashboard', scripted = false, pace = 1 } = {}) {
   if (running) throw Object.assign(new Error('The agent is already running.'), { status: 409, code: 'BUSY' });
   if (isPaused()) throw Object.assign(new Error('The agent is paused. Resume it with the kill switch first.'), { status: 423, code: 'PAUSED' });
   running = true;
   sse.resetRun();
   const runId = newId('RUN');
   sse.event('run', { running: true, runId });
-  runAgent({ runId, trigger, scripted })
+  runAgent({ runId, trigger, scripted, pace })
     .catch((err) => {
       console.error('[agent] Unexpected error:', err);
       audit('system', 'agent.crashed', { runId, error: err.message });
@@ -52,11 +52,12 @@ export function startAgentRun({ trigger = 'dashboard', scripted = false } = {}) 
   return { runId };
 }
 
-async function runAgent({ runId, trigger, scripted }) {
+async function runAgent({ runId, trigger, scripted, pace = 1 }) {
   const today = new Date().toISOString().slice(0, 10);
   const info = providerInfo();
   const useLLM = !scripted && !info.mock;
-  const stepDelay = scripted ? Number(process.env.DEMO_STEP_DELAY_MS ?? 1100) : 0;
+  // Story Mode asks for a slower pace so its captions land just before each event.
+  const stepDelay = scripted ? Number(process.env.DEMO_STEP_DELAY_MS ?? 1100) * Math.min(2.5, Math.max(1, Number(pace) || 1)) : 0;
   const system = scoutSystemPrompt({ mandate: currentMandate(), today, maxToolCalls: MAX_TOOL_CALLS });
   const messages = [{ role: 'user', content: `Run the restock check for Pranay's Café now (trigger: ${trigger}).` }];
   const ctx = { runId };

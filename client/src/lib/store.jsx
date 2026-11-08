@@ -4,6 +4,9 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from './api.js';
 import { useSSE } from './sse.js';
+import { setServerDefaults } from './features.js';
+import { playSound } from './sound.js';
+import { notifyApproval } from './pwa.js';
 
 const AppCtx = createContext(null);
 export const useApp = () => useContext(AppCtx);
@@ -44,6 +47,7 @@ export function AppProvider({ children }) {
   const [arcs, setArcs] = useState([]);
   const [drawerId, setDrawerId] = useState(null);
   const savedMilestone = useRef(0);
+  const alerted = useRef(new Set());
 
   const toast = useCallback((message, kind = 'info') => {
     const id = Math.random().toString(36).slice(2);
@@ -91,6 +95,9 @@ export function AppProvider({ children }) {
     return () => { cancelled = true; clearTimeout(slow); };
   }, [refresh]);
 
+  // Server-side feature defaults (FEATURE_* env vars) arrive with /api/config.
+  useEffect(() => { setServerDefaults(data.config?.features); }, [data.config]);
+
   // Debounced refresh of derived data after bursts of purchase events.
   const pending = useRef(null);
   const refreshDerived = useCallback(() => {
@@ -119,13 +126,19 @@ export function AppProvider({ children }) {
           if (i >= 0) list[i] = e.purchase; else list.push(e.purchase);
           return { ...d, purchases: list };
         });
+        if (e.purchase.status === 'awaiting-approval' && !alerted.current.has(e.purchase.id)) {
+          alerted.current.add(e.purchase.id);
+          notifyApproval(e.purchase);
+        }
         refreshDerived();
         break;
       }
       case 'blocked':
         setShield({ headline: e.headline, purchase: e.purchase });
+        playSound('block');
         break;
       case 'payment': {
+        playSound('payment');
         setArcs((a) => [...a, { ...e, key: e.purchaseId + e.ts }]);
         toast(`Paid ${'$' + e.total.toFixed(2)} to ${e.flag} ${e.supplierName}${e.savedVsLocal ? ` · saved $${e.savedVsLocal.toFixed(2)} vs local` : ''}`, 'success');
         break;
@@ -152,7 +165,7 @@ export function AppProvider({ children }) {
         break;
       case 'toast':
         toast(e.message, e.kind);
-        if (e.kind === 'success') celebrate('small');
+        if (e.kind === 'success') { celebrate('small'); playSound('approve'); }
         break;
       default:
     }

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Clapperboard, Loader } from 'lucide-react';
+import { Clapperboard, Loader, Film } from 'lucide-react';
+import { useFeature } from '../lib/features.js';
+import { startStory } from '../lib/story.js';
 import { useApp } from '../lib/store.jsx';
 import { post } from '../lib/api.js';
 
@@ -11,6 +13,7 @@ import { post } from '../lib/api.js';
 export default function DemoCta() {
   const { purchases, steps, status, toast } = useApp();
   const [starting, setStarting] = useState(false);
+  const story = useFeature('storyMode');
   const fresh = purchases && purchases.every((p) => p.seeded) && steps.length === 0 && !status?.running;
   if (!fresh) return null;
 
@@ -32,10 +35,17 @@ export default function DemoCta() {
           and an order waiting for your approval. Seeded demo data, PayPal sandbox.
         </p>
       </div>
-      <motion.button whileTap={{ scale: 0.97 }} className="btn btn-primary h-11 px-5 text-base" onClick={run} disabled={starting || status?.paused}>
-        {starting ? <Loader size={17} className="animate-spin" aria-hidden="true" /> : <Clapperboard size={17} aria-hidden="true" />}
-        Run Demo
-      </motion.button>
+      <div className="flex flex-wrap gap-2">
+        {story && (
+          <button className="btn h-11 px-4 text-base" onClick={startStory} disabled={status?.paused}>
+            <Film size={17} aria-hidden="true" /> With captions
+          </button>
+        )}
+        <motion.button whileTap={{ scale: 0.97 }} className="btn btn-primary h-11 px-5 text-base" onClick={run} disabled={starting || status?.paused}>
+          {starting ? <Loader size={17} className="animate-spin" aria-hidden="true" /> : <Clapperboard size={17} aria-hidden="true" />}
+          Run the 60-second demo
+        </motion.button>
+      </div>
     </motion.section>
   );
 }

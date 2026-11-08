@@ -1,6 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CircleCheck, CircleX, Clock, ShieldCheck } from 'lucide-react';
+import { CircleCheck, CircleX, Clock, ShieldCheck, BellRing } from 'lucide-react';
+import CheckDraw from '../components/CheckDraw.jsx';
+import { useFeatures } from '../lib/features.js';
+import { askNotificationPermission, notificationsSupported, notificationsGranted, haptic } from '../lib/pwa.js';
 import { api, post } from '../lib/api.js';
 import { useSSE } from '../lib/sse.js';
 import { celebrate } from '../lib/store.jsx';
@@ -16,6 +19,8 @@ export default function Approve({ id }) {
   const [p, setP] = useState(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const flags = useFeatures();
+  const [alerts, setAlerts] = useState(() => notificationsGranted());
 
   useEffect(() => {
     api(`/api/purchases/${encodeURIComponent(id)}`).then(setP).catch((err) => setError(err.message));
@@ -25,7 +30,8 @@ export default function Approve({ id }) {
     if (msg.kind === 'app' && msg.event.type === 'purchase' && msg.event.purchase.id === id) setP(msg.event.purchase);
   });
 
-  const onPaid = useCallback((purchase) => { setP(purchase); celebrate('big'); }, []);
+  const onPaid = useCallback((purchase) => { setP(purchase); celebrate('big'); haptic(); }, []);
+  const enableAlerts = async () => setAlerts((await askNotificationPermission()) === 'granted');
   const onError = useCallback((m) => setError(m), []);
 
   const reject = async () => {
@@ -51,7 +57,9 @@ export default function Approve({ id }) {
             {done ? (
               <motion.div key="done" initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1, transition: spring }} className="card py-10 text-center">
                 <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 14, delay: 0.1 }}>
-                  {p.status === 'approved-paid' ? <CircleCheck size={64} className="mx-auto text-ok" /> : <CircleX size={64} className="mx-auto text-ink-3" />}
+                  {p.status === 'approved-paid'
+                    ? (flags.microInteractions ? <CheckDraw size={68} /> : <CircleCheck size={64} className="mx-auto text-ok" />)
+                    : <CircleX size={64} className="mx-auto text-ink-3" />}
                 </motion.div>
                 <h1 className="mt-4 text-xl font-bold">{p.status === 'approved-paid' ? `Paid ${usd(p.total)}` : 'Rejected'}</h1>
                 <p className="mt-1 text-sm text-ink-2">{p.status === 'approved-paid' ? `PayPal ${p.paypal?.id}. The dashboard updated live.` : 'No money moved.'}</p>
@@ -91,6 +99,11 @@ export default function Approve({ id }) {
             </div>
           )}
           {error && p && <p className="rounded-xl bg-bad-soft px-3 py-2 text-xs text-bad" role="alert">{error}</p>}
+          {flags.pwa && notificationsSupported() && (
+            alerts
+              ? <p className="flex items-center justify-center gap-1.5 text-xs text-ok"><BellRing size={14} aria-hidden="true" /> Alerts on: keep this page open and Restock will notify you of new approvals.</p>
+              : <button className="btn w-full" onClick={enableAlerts}><BellRing size={15} aria-hidden="true" /> Alert me about new approvals</button>
+          )}
           <p className="text-center text-[11px] text-ink-3">PayPal sandbox · no real money moves.</p>
         </motion.main>
       )}

@@ -13,11 +13,15 @@ import SpendChart from '../components/SpendChart.jsx';
 import InventoryGrid from '../components/InventoryGrid.jsx';
 import AskRestock from '../components/AskRestock.jsx';
 import DemoCta from '../components/DemoCta.jsx';
+import BrainView from '../components/BrainView.jsx';
+import PaymentRoutes from '../components/PaymentRoutes.jsx';
+import { useFeatures } from '../lib/features.js';
 
 const Panel = ({ children }) => <ErrorBoundary compact>{children}</ErrorBoundary>;
 
 export default function Dashboard({ theme }) {
   const { kpis, error, refresh, mandate, status } = useApp();
+  const flags = useFeatures();
 
   return (
     <div className="space-y-5">
@@ -47,18 +51,22 @@ export default function Dashboard({ theme }) {
 
       <Panel><DemoCta /></Panel>
 
-      <Panel><KpiStrip kpis={kpis} /></Panel>
+      <div data-story="kpis"><Panel><KpiStrip kpis={kpis} /></Panel></div>
 
       <div className="grid gap-5 xl:grid-cols-12">
-        <div className="xl:col-span-7"><Panel><AgentTimeline /></Panel></div>
+        <div className="space-y-5 xl:col-span-7">
+          {flags.brainView && <div data-story="brain"><Panel><BrainView /></Panel></div>}
+          <div data-story="timeline"><Panel><AgentTimeline /></Panel></div>
+        </div>
         <div className="space-y-5 xl:col-span-5">
-          <Panel><Approvals /></Panel>
+          <div data-story="approvals"><Panel><Approvals /></Panel></div>
           <Panel><WeeklyBriefing /></Panel>
         </div>
       </div>
 
-      <Panel><CashFlowStrip /></Panel>
-      <Panel><PurchasesGrid /></Panel>
+      <div data-story="cash"><Panel><CashFlowStrip /></Panel></div>
+      {flags.paymentRoutes && <div data-story="routes"><Panel><PaymentRoutes /></Panel></div>}
+      <div data-story="purchases"><Panel><PurchasesGrid /></Panel></div>
 
       <div className="grid gap-5 xl:grid-cols-12">
         <div className="xl:col-span-7"><Panel><SpendChart theme={theme} /></Panel></div>

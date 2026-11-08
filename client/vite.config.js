@@ -2,6 +2,10 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const here = path.dirname(fileURLToPath(import.meta.url));
 
 // Use the same PORT as the API server (from restock/.env), default 3456.
 if (fs.existsSync('../.env')) process.loadEnvFile('../.env');
@@ -11,9 +15,12 @@ const apiPort = process.env.PORT || 3456;
 // Prod: Express serves client/dist itself (one Render service).
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  // The Scenario Lab runs the REAL Guardian (pure code) in the browser.
+  resolve: { alias: { '@guardian': path.resolve(here, '../server/guardian') } },
   server: {
     port: 5173,
-    host: true, // reachable from your phone on the same Wi-Fi (for the QR approve flow)
+    host: true,
+    fs: { allow: [path.resolve(here, '..')] }, // reachable from your phone on the same Wi-Fi (for the QR approve flow)
     proxy: { '/api': { target: `http://localhost:${apiPort}`, changeOrigin: true } },
   },
   build: {

@@ -1,5 +1,6 @@
-import React from 'react';
-import { ExternalLink } from 'lucide-react';
+import React, { useState } from 'react';
+import { ExternalLink, RefreshCw } from 'lucide-react';
+import { api } from '../lib/api.js';
 import { dateTime } from '../lib/format.js';
 
 /** The PayPal IDs and statuses that prove a payment happened (Decision Trace + receipt). */
@@ -33,6 +34,7 @@ export default function PayPalProof({ p, compact = false }) {
   const mock = !!p.paypal.mock || p.seeded;
   return (
     <div>
+      {!mock && p.paypal.method === 'payout' && <RefreshPayout id={p.paypal.id} />}
       <dl className={`grid gap-y-1.5 ${compact ? 'grid-cols-[150px_1fr] text-sm' : 'grid-cols-[130px_1fr] text-xs'}`}>
         {rows.map(([k, v, mono]) => (
           <React.Fragment key={k}>
@@ -46,13 +48,28 @@ export default function PayPalProof({ p, compact = false }) {
           <>{p.seeded ? 'Seeded demo history' : 'Mock PayPal ID (no sandbox keys set)'}: this ID is not in PayPal.</>
         ) : (
           <>
-            <b className="text-ink">View in PayPal sandbox dashboard:</b> log in at{' '}
+            <b className="text-ink">Verify in your PayPal sandbox dashboard:</b> log in at{' '}
             <a className="link inline-flex items-center gap-0.5" href="https://www.sandbox.paypal.com/" target="_blank" rel="noreferrer">sandbox.paypal.com <ExternalLink size={11} aria-hidden="true" /></a>{' '}
             as the café&apos;s sandbox business account and open Activity, or check API calls in the{' '}
             <a className="link inline-flex items-center gap-0.5" href="https://developer.paypal.com/dashboard/" target="_blank" rel="noreferrer">developer dashboard <ExternalLink size={11} aria-hidden="true" /></a>.
           </>
         )}
       </p>
+    </div>
+  );
+}
+
+/** Re-check a live payout with PayPal (GET /api/paypal/payouts/:batchId); the purchase updates over SSE. */
+function RefreshPayout({ id }) {
+  const [state, setState] = useState('');
+  const go = async () => {
+    setState('Checking PayPal…');
+    try { await api(`/api/paypal/payouts/${encodeURIComponent(id)}`); setState('Updated from PayPal just now.'); } catch (err) { setState(err.message); }
+  };
+  return (
+    <div className="mb-2 flex items-center gap-2 no-print">
+      <button className="btn btn-sm" onClick={go}><RefreshCw size={13} aria-hidden="true" /> Refresh from PayPal</button>
+      <span className="text-[11px] text-ink-3" aria-live="polite">{state}</span>
     </div>
   );
 }

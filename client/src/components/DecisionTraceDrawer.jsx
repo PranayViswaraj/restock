@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X, CircleCheck, CircleX, Clock, Receipt } from 'lucide-react';
 import { useApp } from '../lib/store.jsx';
@@ -8,6 +8,22 @@ import PayPalProof from './PayPalProof.jsx';
 import { spring, stagger } from '../lib/motion.js';
 import RoleAvatar from './RoleAvatar.jsx';
 import StatusBadge from './StatusBadge.jsx';
+import TechnicalTrace from './TechnicalTrace.jsx';
+import { useFeature } from '../lib/features.js';
+
+/** Owner view: the whole decision in three plain sentences. */
+function plainSummary(p) {
+  const failed = (p.guardianChecks || []).filter((c) => !c.passed);
+  const guard = p.verdict === 'BLOCK'
+    ? `Guardian said no: ${failed.map((c) => (RULE_LABELS[c.rule] || c.rule).toLowerCase()).join(', ')} failed.`
+    : p.verdict === 'DELAY' ? `Guardian approved it, but paying now would dip below your cash buffer, so it waits until ${p.delayUntil}.`
+      : p.verdict === 'NEEDS_APPROVAL' ? 'Guardian approved it, but it needs your OK first.'
+        : 'Guardian checked all 7 of your rules: every one passed.';
+  const pay = p.paypal?.id
+    ? `Treasurer paid ${usd(p.total)} through PayPal${p.international ? ' (cross-border)' : ''}${p.savedVsLocal ? `, saving ${usd(p.savedVsLocal)} vs local` : ''}.`
+    : p.status === 'blocked' ? 'No money moved.' : p.status === 'awaiting-approval' ? 'Waiting for your approval in PayPal.' : p.status === 'delayed' ? 'No money moved yet.' : `Status: ${p.status}.`;
+  return [`Scout wanted ${p.quantity} × ${p.productName} from ${p.supplierName}.`, guard, pay];
+}
 
 function Section({ role, title, children }) {
   return (
@@ -25,6 +41,9 @@ export default function DecisionTraceDrawer() {
   const { drawerId, openTrace, purchases } = useApp();
   const p = (purchases || []).find((x) => x.id === drawerId);
   const closeRef = useRef(null);
+  const explain = useFeature('explainToggle');
+  const [view, setView] = useState('owner');
+  const technical = explain && view === 'technical';
 
   useEffect(() => {
     if (!drawerId) return undefined;
@@ -57,7 +76,26 @@ export default function DecisionTraceDrawer() {
               <button ref={closeRef} className="btn btn-sm h-9 w-9 px-0" onClick={() => openTrace(null)} aria-label="Close decision trace"><X size={16} /></button>
             </header>
 
+            {explain && (
+              <div className="flex items-center gap-1 border-b border-line px-6 py-2" role="tablist" aria-label="Trace view">
+                {[['owner', 'Owner view'], ['technical', 'Technical view']].map(([k, label]) => (
+                  <button key={k} role="tab" aria-selected={view === k} onClick={() => setView(k)}
+                    className={`relative rounded-lg px-3 py-1.5 text-xs font-semibold ${view === k ? 'text-ink' : 'text-ink-3 hover:text-ink-2'}`}>
+                    {view === k && <motion.span layoutId="trace-tab" className="absolute inset-0 rounded-lg bg-surface-2" transition={spring} />}
+                    <span className="relative">{label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
             <div className="flex-1 overflow-y-auto px-6">
+              {technical ? <TechnicalTrace p={p} /> : (
+              <>
+              {explain && (
+                <ol className="mt-5 space-y-1.5 rounded-xl bg-accent-soft/50 px-4 py-3 text-sm">
+                  {plainSummary(p).map((t, i) => <li key={i} className="flex gap-2"><span className="font-bold text-accent">{i + 1}.</span> {t}</li>)}
+                </ol>
+              )}
               <Section role="scout" title="Scout's reasoning (AI)">
                 <blockquote className="rounded-xl bg-scout-soft/60 px-4 py-3 text-sm italic">“{p.reason}”</blockquote>
                 <dl className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
@@ -122,6 +160,8 @@ export default function DecisionTraceDrawer() {
                   </div>
                 )}
               </Section>
+              </>
+              )}
             </div>
           </motion.aside>
         </>

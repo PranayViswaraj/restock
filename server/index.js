@@ -78,6 +78,12 @@ const services = () => {
   };
 };
 const today = () => new Date().toISOString().slice(0, 10);
+const FEATURE_ENV = {
+  storyMode: 'FEATURE_STORY_MODE', brainView: 'FEATURE_BRAIN_VIEW', paymentRoutes: 'FEATURE_PAYMENT_ROUTES',
+  scenarioLab: 'FEATURE_SCENARIO_LAB', mandateUpgrades: 'FEATURE_MANDATE_UPGRADES', pwa: 'FEATURE_PWA',
+  landingCinema: 'FEATURE_LANDING_CINEMA', microInteractions: 'FEATURE_MICRO_INTERACTIONS',
+  explainToggle: 'FEATURE_EXPLAIN_TOGGLE', sound: 'FEATURE_SOUND',
+};
 
 // ------------------------------------------------------------------ config & status
 app.get('/api/health', (req, res) => res.json({ ok: true }));
@@ -90,6 +96,8 @@ app.get('/api/config', (req, res) => {
     business: { name: "Pranay's Café", owner: 'Pranay', city: 'Austin, TX', lat: 30.27, lon: -97.74, flag: '🇺🇸' },
     services: services(),
     publicUrl: process.env.PUBLIC_URL || null,
+    // Server-side defaults for the optional "wow" features (FEATURE_STORY_MODE=false etc.).
+    features: Object.fromEntries(Object.entries(FEATURE_ENV).filter(([, env]) => process.env[env] !== undefined && process.env[env] !== '').map(([key, env]) => [key, flag(env)])),
   });
 });
 
@@ -349,11 +357,12 @@ app.post('/api/demo/reset', (req, res) => {
 // Demo mode: fresh data + scripted, paced run. Works with zero keys.
 // (The Scout is scripted; Guardian and PayPal are real when keys are set.)
 app.post('/api/demo/run', limitDemoBurst, limitDemo, (req, res) => {
+  const { pace } = validate(z.object({ pace: z.number().min(1).max(2.5).optional() }), req.body);
   if (isRunning()) throw new HttpError(409, 'BUSY', 'The agent is already running.');
   seedAll();
   markSeeded('Demo mode always uses the seeded story.');
   sse.event('reset', {});
-  res.status(202).json(startAgentRun({ trigger: 'demo mode', scripted: true }));
+  res.status(202).json(startAgentRun({ trigger: pace > 1 ? 'story mode' : 'demo mode', scripted: true, pace }));
 });
 
 // ------------------------------------------------------------------ frontend

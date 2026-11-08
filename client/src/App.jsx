@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { Suspense, lazy, useCallback, useEffect, useState } from 'react';
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
 import { AppProvider, useApp } from './lib/store.jsx';
 import WakeScreen from './components/WakeScreen.jsx';
@@ -11,14 +11,22 @@ import PaymentArc from './components/PaymentArc.jsx';
 import DecisionTraceDrawer from './components/DecisionTraceDrawer.jsx';
 import CommandPalette from './components/CommandPalette.jsx';
 import GuidedTour from './components/GuidedTour.jsx';
+import SettingsPanel from './components/SettingsPanel.jsx';
+import StoryMode from './components/StoryMode.jsx';
+import { SkeletonCard } from './components/Skeleton.jsx';
+import { useFeatures } from './lib/features.js';
+import { useStory } from './lib/story.js';
 import Landing from './pages/Landing.jsx';
 import Dashboard from './pages/Dashboard.jsx';
-import Mandate from './pages/Mandate.jsx';
-import Simulation from './pages/Simulation.jsx';
 import Approve from './pages/Approve.jsx';
-import Suppliers from './pages/Suppliers.jsx';
-import Ledger from './pages/Ledger.jsx';
-import Receipt from './pages/Receipt.jsx';
+
+// Heavier, less-visited pages load on demand (code splitting).
+const Mandate = lazy(() => import('./pages/Mandate.jsx'));
+const Simulation = lazy(() => import('./pages/Simulation.jsx'));
+const Suppliers = lazy(() => import('./pages/Suppliers.jsx'));
+const Ledger = lazy(() => import('./pages/Ledger.jsx'));
+const Receipt = lazy(() => import('./pages/Receipt.jsx'));
+const Lab = lazy(() => import('./pages/Lab.jsx'));
 
 function initialTheme() {
   const t = document.documentElement.dataset.theme;
@@ -30,6 +38,10 @@ export default function App() {
   const [theme, setTheme] = useState(initialTheme);
   const [palette, setPalette] = useState(false);
   const [tourKey, setTourKey] = useState(0);
+  const [settings, setSettings] = useState(false);
+  const flags = useFeatures();
+  const story = useStory();
+  const closeSettings = useCallback(() => setSettings(false), []);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -62,6 +74,7 @@ export default function App() {
   else if (path === '/simulate') page = <Simulation />;
   else if (path === '/suppliers') page = <Suppliers />;
   else if (path === '/ledger') page = <Ledger />;
+  else if (path === '/lab' && flags.scenarioLab) page = <Lab />;
   else if (receipt) page = <Receipt id={receipt.id} />;
   else page = <NotFound />;
 
@@ -69,7 +82,7 @@ export default function App() {
     <MotionConfig reducedMotion="user">
       <AppProvider>
         <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[80] focus:rounded-lg focus:bg-surface focus:px-3 focus:py-2">Skip to content</a>
-        {chrome && <Header path={path} theme={theme} onToggleTheme={toggleTheme} onOpenPalette={() => setPalette(true)} />}
+        {chrome && <Header path={path} theme={theme} onToggleTheme={toggleTheme} onOpenPalette={() => setPalette(true)} onOpenSettings={() => setSettings(true)} />}
         <ErrorBoundary key={path}>
           <AnimatePresence mode="wait">
             <motion.main
@@ -80,7 +93,7 @@ export default function App() {
               exit={{ opacity: 0, transition: { duration: 0.12 } }}
               className={chrome ? 'mx-auto max-w-[1360px] px-4 py-6 sm:px-6' : ''}
             >
-              {page}
+              <Suspense fallback={<SkeletonCard lines={6} />}>{page}</Suspense>
             </motion.main>
           </AnimatePresence>
         </ErrorBoundary>
@@ -90,8 +103,10 @@ export default function App() {
         <PaymentArc />
         <DecisionTraceDrawer />
         <Toasts />
-        <CommandPalette open={palette} onClose={() => setPalette(false)} onToggleTheme={toggleTheme} onStartTour={startTour} />
-        {path === '/app' && <GuidedTour key={tourKey} forceOpen={tourKey > 0} />}
+        <CommandPalette open={palette} onClose={() => setPalette(false)} onToggleTheme={toggleTheme} onStartTour={startTour} onOpenSettings={() => setSettings(true)} />
+        <SettingsPanel open={settings} onClose={closeSettings} />
+        {flags.storyMode && <StoryMode />}
+        {path === '/app' && !story.active && <GuidedTour key={tourKey} forceOpen={tourKey > 0} />}
       </AppProvider>
     </MotionConfig>
   );
