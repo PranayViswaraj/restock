@@ -1,0 +1,76 @@
+# Render Blueprint: ONE free web service that serves the API and the built React app.
+# Deploy: Render Dashboard -> New -> Blueprint -> pick this repo.
+#
+# What runs where:
+#   - Render web service (free): API, SSE stream, React app, Guardian, Treasurer, PayPal calls.
+#   - GitHub Actions (free): .github/workflows/daily-agent.yml calls POST /api/cron/daily-run
+#     once a day (Render cron jobs are a paid feature, so they are not used by default).
+services:
+  - type: web
+    name: restock
+    runtime: node
+    plan: free
+    buildCommand: npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "20.18.0"
+      # Free instances lose their disk on restart: re-seed fresh demo data each boot.
+      - key: SEED_ON_START
+        value: "true"
+      # Set to your Render URL (e.g. https://restock.onrender.com) so QR codes work on phones.
+      - key: PUBLIC_URL
+        sync: false
+      - key: LLM_PROVIDER
+        value: gemini
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: USE_MOCK_LLM
+        value: "false"
+      - key: AGENT_FALLBACK_TO_RULES
+        value: "true"
+      - key: AGENT_MAX_TOOL_CALLS
+        value: "12"
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      # One sandbox account per supplier group (falls back to PAYPAL_SUPPLIER_EMAIL)
+      - key: SUPPLIER_EMAIL_LOCAL
+        sync: false
+      - key: SUPPLIER_EMAIL_COORG
+        sync: false
+      - key: SUPPLIER_EMAIL_CHENNAI
+        sync: false
+      - key: PAYPAL_SUPPLIER_EMAIL
+        sync: false
+      - key: USE_MOCK_PAYPAL
+        value: "false"
+      # true = Scout reads sales from the café's PayPal sandbox transactions
+      - key: USE_PAYPAL_SALES
+        value: "false"
+      - key: USE_MOCK_CHANNEL3
+        value: "true"
+      - key: CHANNEL3_API_KEY
+        sync: false
+      - key: CHANNEL3_API_BASE
+        sync: false
+      # Shared secret for POST /api/cron/daily-run (set the same value in GitHub Actions)
+      - key: CRON_SECRET
+        generateValue: true
+
+# PAID alternative to the GitHub Actions schedule (Render cron jobs are not free).
+# Uncomment to use it instead; set RESTOCK_URL and CRON_SECRET on the cron job.
+#
+#  - type: cron
+#    name: restock-daily-run
+#    runtime: node
+#    schedule: "0 13 * * *"   # UTC = 7:00 in Austin
+#    buildCommand: "true"
+#    startCommand: >-
+#      node -e "fetch(process.env.RESTOCK_URL + '/api/cron/daily-run', { method: 'POST',
+#      headers: { Authorization: 'Bearer ' + process.env.CRON_SECRET } }).then(r => r.text()).then(console.log)"

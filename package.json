@@ -1,0 +1,28 @@
+{
+  "name": "restock",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Restock: the trust layer for agentic commerce. An AI purchasing agent that guards every dollar with code and pays suppliers worldwide through PayPal.",
+  "type": "module",
+  "engines": {
+    "node": ">=20.12"
+  },
+  "scripts": {
+    "install-all": "npm install && npm install --prefix server && npm install --prefix client",
+    "setup": "node scripts/setup.js",
+    "seed": "node server/scripts/seed.js",
+    "dev": "node scripts/dev.js",
+    "build": "npm install --prefix server --include=dev && npm install --prefix client --include=dev && npm run build --prefix client",
+    "start": "node server/index.js",
+    "test": "npm test --prefix server",
+    "lint": "eslint .",
+    "format": "prettier --write \"server/**/*.js\" \"client/src/**/*.{js,jsx,css}\" \"scripts/**/*.js\"",
+    "sandbox-sales": "node scripts/create-sandbox-sales.js"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.14.0",
+    "globals": "^17.6.0",
+    "prettier": "^3.9.4"
+  }
+}
