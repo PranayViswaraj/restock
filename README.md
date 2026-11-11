@@ -248,15 +248,6 @@ git push -u origin main
 - [scenario.test.js](server/tests/scenario.test.js): Scenario Lab what-ifs, including "a persuasive reason never gets an overpriced order auto-paid".
 - [hardening.test.js](server/tests/hardening.test.js): payout routing, the PayPal transactions → sales mapping, rate limiting, and CSP hashes.
 
-## Limitations (honest)
-
-- **PayPal sandbox only.** The cash balance is simulated (reading a live balance needs extra permissions).
-- **Seeded data:** sales (unless PayPal sales input is on), suppliers, catalog prices and history. Deliveries are simulated.
-- **Scripted Scout in Story Mode and Demo mode**, so the story is reproducible. **Run agent** uses the live AI.
-- **Channel3 isn't integrated** (mock catalog). **APIMatic** isn't documented yet.
-- **Storage:** data lives in JSON files on one instance and resets on Render restarts. All visitors share one demo café.
-- **Free AI tiers rate-limit.** The backup logic takes over and says so.
-- **Browser approval alerts** only fire while a Restock page is open (no paid push service).
 
 ## License
 
