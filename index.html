@@ -1,64 +1,30 @@
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Restock Demo Video</title>
-<meta name="description" content="Restock: the trust layer for agentic commerce. AI decides, code guards the money, PayPal moves it. PayPal AI Hackathon demo by Pranay Viswaraju.">
-<meta property="og:title" content="Restock: the trust layer for agentic commerce">
-<meta property="og:description" content="AI decides. Code guards the money. PayPal moves it. 3-minute demo, PayPal AI Hackathon.">
-<meta property="og:image" content="https://pranayviswaraj.github.io/restock/thumbnail.png">
-<meta property="og:type" content="video.other">
-<meta property="og:video" content="https://pranayviswaraj.github.io/restock/restock-demo.mp4">
-<meta name="twitter:card" content="summary_large_image">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%234f46e5'/%3E%3Cpath d='M32 13l15 6v11c0 10-6.5 17.5-15 21-8.5-3.5-15-11-15-21V19z' fill='%23fff'/%3E%3C/svg%3E">
-<style>
-  :root { --bg: #070914; --ink: #eef0fb; --ink2: #a3a9c7; --line: rgba(255,255,255,.1); --accent: #818cf8; }
-  * { box-sizing: border-box; margin: 0; }
-  body { background: radial-gradient(900px 500px at 15% -10%, #312e81 0%, transparent 60%), radial-gradient(800px 500px at 100% 10%, #4c1d95 0%, transparent 55%), var(--bg); color: var(--ink); font: 16px/1.6 Inter, system-ui, -apple-system, Segoe UI, sans-serif; min-height: 100vh; padding: 40px 16px 60px; }
-  main { max-width: 1040px; margin: 0 auto; }
-  .brand { display: flex; align-items: center; gap: 12px; font-weight: 800; font-size: 22px; }
-  .brand i { width: 40px; height: 40px; border-radius: 11px; background: linear-gradient(135deg, #6366f1, #4338ca); display: grid; place-items: center; }
-  h1 { font-size: clamp(28px, 5vw, 46px); line-height: 1.1; letter-spacing: -.03em; margin: 22px 0 10px; }
-  h1 span { background: linear-gradient(100deg, #c7d2fe, #a78bfa 45%, #67e8f9); -webkit-background-clip: text; background-clip: text; color: transparent; }
-  .sub { color: var(--ink2); font-size: 18px; }
-  .player { margin-top: 26px; border-radius: 18px; overflow: hidden; border: 1px solid var(--line); box-shadow: 0 40px 100px -30px rgba(99,102,241,.6); background: #000; }
-  video { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; }
-  .row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
-  .row a { color: var(--ink); text-decoration: none; padding: 10px 16px; border-radius: 999px; border: 1px solid var(--line); background: rgba(255,255,255,.05); font-weight: 600; font-size: 15px; }
-  .row a:hover { border-color: var(--accent); }
-  .roles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-top: 34px; }
-  .roles div { padding: 18px; border-radius: 14px; border: 1px solid var(--line); background: rgba(17,20,40,.6); }
-  .roles b { display: block; font-size: 18px; }
-  .roles small { color: var(--ink2); font-size: 15px; }
-  footer { margin-top: 36px; color: var(--ink2); font-size: 14px; }
-</style>
-</head>
-<body>
-<main>
-  <div class="brand"><i><svg width="24" height="24" viewBox="0 0 64 64"><path d="M32 9l19 7.5v14C51 43 43 52 32 56 21 52 13 43 13 30.5v-14z" fill="#fff"/><path d="M23.5 32.5l6 6 11.5-12.5" stroke="#4338ca" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></i>Restock</div>
-  <h1>The <span>trust layer</span> for agentic commerce</h1>
-  <p class="sub">The AI decides. The code guards the money. PayPal moves it.</p>
-
-  <div class="player">
-    <video controls playsinline preload="metadata" poster="thumbnail.png">
-      <source src="restock-demo.mp4" type="video/mp4">
-      Your browser can't play this video. <a href="restock-demo.mp4">Download it</a>.
-    </video>
-  </div>
-
-  <div class="row">
-    <a href="https://github.com/PranayViswaraj/restock">Source code on GitHub</a>
-    <a href="restock-demo.mp4" download>Download video (MP4)</a>
-  </div>
-
-  <div class="roles">
-    <div><b style="color:#a78bfa">Scout · AI</b><small>Reads sales, forecasts stock, compares suppliers worldwide and proposes what to buy.</small></div>
-    <div><b style="color:#f59e0b">Guardian · Code</b><small>7 deterministic checks against the owner's signed mandate. The AI can't talk its way past it.</small></div>
-    <div><b style="color:#34d399">Treasurer · PayPal</b><small>Payouts for agent auto-pay, Orders v2 for owner approval, cross-border to India.</small></div>
-  </div>
-
-  <footer>Built by Pranay Viswaraju, Chennai, India · PayPal AI Hackathon · All payments run in the PayPal sandbox; sales are seeded demo data.</footer>
-</main>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="description" content="Restock — the trust layer for agentic commerce. An AI purchasing agent that guards every dollar with code and pays suppliers worldwide through PayPal." />
+    <meta name="theme-color" content="#4338ca" />
+    <link rel="icon" href="/restock/favicon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="/restock/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/restock/icons/apple-touch-icon.png" />
+    <title>Restock — the trust layer for agentic commerce</title>
+    <script>
+      // Set the theme before first paint (no flash). Mirrors App.jsx logic.
+      try {
+        var t = localStorage.getItem('restock-theme');
+        if (t !== 'light' && t !== 'dark') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        document.documentElement.dataset.theme = t;
+      } catch (e) { document.documentElement.dataset.theme = 'light'; }
+    </script>
+    <script type="module" crossorigin src="/restock/assets/index-C-xb4ld9.js"></script>
+    <link rel="modulepreload" crossorigin href="/restock/assets/createLucideIcon-C-bNdaTa.js">
+    <link rel="modulepreload" crossorigin href="/restock/assets/format-DZZnHhy8.js">
+    <link rel="modulepreload" crossorigin href="/restock/assets/api-q2be6qsA.js">
+    <link rel="stylesheet" crossorigin href="/restock/assets/index-i4kgJSOH.css">
+  </head>
+  <body>
+    <div id="root"><p style="font: 15px system-ui, sans-serif; color: #6b7280; text-align: center; margin-top: 40vh">Loading Restock…</p></div>
+    <noscript>Restock needs JavaScript enabled.</noscript>
+  </body>
 </html>
